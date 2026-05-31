@@ -1,9 +1,6 @@
 package database;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class DatabaseConnection {
     private static final String DB_URL = "jdbc:sqlite:happymart.db";
@@ -24,19 +21,51 @@ public class DatabaseConnection {
     }
 
     private static void initializeDatabase(Connection conn) throws SQLException {
-        String createTable = """
-            CREATE TABLE IF NOT EXISTS products (
-                id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                code      TEXT    NOT NULL UNIQUE,
-                name      TEXT    NOT NULL,
-                amount    INTEGER NOT NULL DEFAULT 0,
-                price     REAL    NOT NULL DEFAULT 0.0,
-                thumbnail BLOB
-            );
-        """;
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute(createTable);
-            System.out.println("Products table ready.");
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS products (
+                    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    code      TEXT    NOT NULL UNIQUE,
+                    name      TEXT    NOT NULL,
+                    amount    INTEGER NOT NULL DEFAULT 0,
+                    price     REAL    NOT NULL DEFAULT 0.0,
+                    thumbnail BLOB
+                );
+            """);
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id TEXT PRIMARY KEY,
+                    name    TEXT NOT NULL,
+                    role    TEXT NOT NULL DEFAULT 'cashier'
+                );
+            """);
+            System.out.println("Tables ready.");
+        }
+        seedUsers(conn);
+    }
+
+    private static void seedUsers(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM users")) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        String[][] users = {
+            {"ADM001", "Admin",  "admin"},
+            {"CSH001", "Alice",  "cashier"},
+            {"CSH002", "Bob",    "cashier"}
+        };
+
+        String sql = "INSERT INTO users (user_id, name, role) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (String[] u : users) {
+                ps.setString(1, u[0]);
+                ps.setString(2, u[1]);
+                ps.setString(3, u[2]);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+            System.out.println("Users seeded.");
         }
     }
 

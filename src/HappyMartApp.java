@@ -535,6 +535,6 @@ public class HappyMartApp extends JFrame {
     //  ENTRY POINT
     // ═════════════════════════════════════════════════════════════════════════
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(HappyMartApp::new);
+        SwingUtilities.invokeLater(SignInScreen::new);
     }
 }
